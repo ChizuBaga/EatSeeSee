@@ -7,7 +7,6 @@ import 'package:chikankan/Controller/MNB_classifier.dart'; // Import your classi
 class ItemDetailsPage extends StatelessWidget {
   final String sellerId;
   final String itemId;
-  final classifier = NaiveBayesClassifier();
   const ItemDetailsPage({
     super.key,
     required this.sellerId,
@@ -16,6 +15,7 @@ class ItemDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    
     // 1. Define a reference to the specific document
     final DocumentReference docRef = FirebaseFirestore.instance
         .collection('Seller')
@@ -59,7 +59,7 @@ class ItemDetailsPage extends StatelessWidget {
                 child: const Padding(
                   padding: EdgeInsets.all(12.0),
                   // TODO: Input comments into your classifier and display the result here
-                  ()
+                  
                   child: Text("Analysis results will be shown here."),
                 ),
               ),
@@ -84,4 +84,19 @@ class ItemDetailsPage extends StatelessWidget {
       ),
     );
   }
+  void runPrediction(String input) {
+  try {
+    // 1. Get the Singleton instance
+    final classifier = NaiveBayesClassifier(); 
+
+    // 2. Call the synchronous predict function
+    final int predictedClass = classifier.predict(input);
+    
+
+  } catch (e) {
+
+    print('Prediction Failed: $e'); 
+  }
+}
+
 }

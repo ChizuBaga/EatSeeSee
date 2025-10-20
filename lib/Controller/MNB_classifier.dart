@@ -7,7 +7,15 @@ class NaiveBayesClassifier {
   late List<List<double>> _featureLogProb;
   late List<int> _classes;
   bool _isModelLoaded = false;
+  static final NaiveBayesClassifier _instance = NaiveBayesClassifier._internal();
 
+  // 2. Define a factory constructor to always return the same instance
+  factory NaiveBayesClassifier() {
+    return _instance;
+  }
+
+  // 3. Define a private named constructor
+  NaiveBayesClassifier._internal();
 
   // Loads the model data from the JSON asset file
   Future<void> loadModel() async {
