@@ -1,8 +1,8 @@
-// lib/item_details_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:chikankan/Model/item_model.dart';  // Import your model
+import 'package:chikankan/Model/item_model.dart'; // Import your model
 import 'package:chikankan/Controller/MNB_classifier.dart'; // Import your classifier
+import 'package:chikankan/locator.dart';
 
 class ItemDetailsPage extends StatelessWidget {
   final String sellerId;
@@ -15,7 +15,6 @@ class ItemDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
     // 1. Define a reference to the specific document
     final DocumentReference docRef = FirebaseFirestore.instance
         .collection('Seller')
@@ -42,6 +41,25 @@ class ItemDetailsPage extends StatelessWidget {
           // 3. If data exists, create an Item object using our model
           final Item item = Item.fromFirestore(snapshot.data!);
 
+          // --- 4. NEW: Perform sentiment analysis ---
+          // NOTE: This assumes your classifier's model is already loaded,
+          // for example, by using a singleton or service locator pattern.
+          final classifier = locator<NaiveBayesClassifier>();
+          int positiveCount = 0;
+          double positivePercentage = 0.0;
+          double negativePercentage = 0.0;
+          
+          if (item.comments.isNotEmpty) {
+            for (final comment in item.comments) {
+              // Assuming 1 is 'Good' and 0 is 'Bad'
+              if (classifier.predict(comment) == 1) {
+                positiveCount++;
+              }
+            }
+            positivePercentage = (positiveCount / item.comments.length) * 100;
+            negativePercentage = 100 - positivePercentage;
+          }
+
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
@@ -51,16 +69,50 @@ class ItemDetailsPage extends StatelessWidget {
               Text("\$${item.price.toStringAsFixed(2)}", style: Theme.of(context).textTheme.titleLarge),
               const Divider(height: 32),
 
-              // --- Placeholder for Comment Analyzer ---
+              // --- 5. MODIFIED: Comments Analyzer Widget ---
               Text("Comments Analysis", style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Card(
                 color: Colors.blue.shade50,
-                child: const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  // TODO: Input comments into your classifier and display the result here
-                  
-                  child: Text("Analysis results will be shown here."),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // --- Good Reviews Column ---
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              '${positivePercentage.toStringAsFixed(0)}%', // Large percentage
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text("👍 Good Reviews"),
+                          ],
+                        ),
+                      ),
+                      // --- Bad Reviews Column ---
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Text(
+                              '${negativePercentage.toStringAsFixed(0)}%', // Large percentage
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text("👎 Bad Reviews"),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const Divider(height: 32),
@@ -68,7 +120,6 @@ class ItemDetailsPage extends StatelessWidget {
               // --- Display Raw Comments ---
               Text("Comments", style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              // Use a Column for a short list, or ListView.builder for a long one
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: item.comments.map((comment) => Card(
@@ -84,19 +135,4 @@ class ItemDetailsPage extends StatelessWidget {
       ),
     );
   }
-  void runPrediction(String input) {
-  try {
-    // 1. Get the Singleton instance
-    final classifier = NaiveBayesClassifier(); 
-
-    // 2. Call the synchronous predict function
-    final int predictedClass = classifier.predict(input);
-    
-
-  } catch (e) {
-
-    print('Prediction Failed: $e'); 
-  }
-}
-
 }
